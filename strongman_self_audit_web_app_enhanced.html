@@ -1,0 +1,170 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strongman Self-Audit Tool</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: auto;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+        select, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        .result, canvas {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-left: 5px solid #007BFF;
+            margin-top: 20px;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Strongman Self-Audit Tool</h1>
+
+    <form id="auditForm">
+        <label for="recovery">1. Recovery & Fatigue Management (1–5):</label>
+        <select id="recovery"><option value="">Select...</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+        <textarea id="recovery_notes" placeholder="Notes..."></textarea>
+
+        <label for="nutrition">2. Nutrition & Body Composition (1–5):</label>
+        <select id="nutrition"><option value="">Select...</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+        <textarea id="nutrition_notes" placeholder="Notes..."></textarea>
+
+        <label for="programming">3. Programming & Periodization (1–5):</label>
+        <select id="programming"><option value="">Select...</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+        <textarea id="programming_notes" placeholder="Notes..."></textarea>
+
+        <label for="technique">4. Event Technique & Efficiency (1–5):</label>
+        <select id="technique"><option value="">Select...</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+        <textarea id="technique_notes" placeholder="Notes..."></textarea>
+
+        <label for="mindset">5. Mindset & Mental Readiness (1–5):</label>
+        <select id="mindset"><option value="">Select...</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+        <textarea id="mindset_notes" placeholder="Notes..."></textarea>
+
+        <label for="lifestyle">6. Lifestyle & External Stress (1–5):</label>
+        <select id="lifestyle"><option value="">Select...</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+        <textarea id="lifestyle_notes" placeholder="Notes..."></textarea>
+
+        <button type="button" onclick="generateSummary()">Generate Summary</button>
+        <button type="button" onclick="exportData()">Export as CSV</button>
+    </form>
+
+    <div id="summary" class="result" style="display:none;"></div>
+    <canvas id="auditChart" width="400" height="200" style="display:none;"></canvas>
+
+    <script>
+        function generateSummary() {
+            const categories = ['recovery', 'nutrition', 'programming', 'technique', 'mindset', 'lifestyle'];
+            let total = 0;
+            let count = 0;
+            let weakAreas = [];
+            let scores = [];
+
+            categories.forEach(cat => {
+                const score = parseInt(document.getElementById(cat).value);
+                if (!isNaN(score)) {
+                    total += score;
+                    count++;
+                    scores.push(score);
+                    if (score <= 2) weakAreas.push(cat.charAt(0).toUpperCase() + cat.slice(1));
+                } else {
+                    scores.push(0);
+                }
+            });
+
+            const average = count ? (total / count).toFixed(2) : "N/A";
+            let summaryText = `<h2>Audit Summary</h2><p><strong>Average Score:</strong> ${average} / 5</p>`;
+            summaryText += weakAreas.length > 0 
+                ? `<p><strong>Focus Areas:</strong> ${weakAreas.join(', ')}</p>`
+                : `<p><strong>Great job!</strong> No major weak points identified.</p>`;
+
+            document.getElementById('summary').innerHTML = summaryText;
+            document.getElementById('summary').style.display = 'block';
+
+            drawChart(scores);
+        }
+
+        function drawChart(scores) {
+            const ctx = document.getElementById('auditChart').getContext('2d');
+            document.getElementById('auditChart').style.display = 'block';
+
+            if (window.auditChartInstance) {
+                window.auditChartInstance.destroy();
+            }
+
+            window.auditChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Recovery', 'Nutrition', 'Programming', 'Technique', 'Mindset', 'Lifestyle'],
+                    datasets: [{
+                        label: 'Audit Scores',
+                        data: scores,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 5
+                        }
+                    }
+                }
+            });
+        }
+
+        function exportData() {
+            const categories = ['recovery', 'nutrition', 'programming', 'technique', 'mindset', 'lifestyle'];
+            let csvContent = "Category,Score,Notes\n";
+
+            categories.forEach(cat => {
+                const score = document.getElementById(cat).value || "";
+                const notes = document.getElementById(cat + "_notes").value.replace(/\n/g, " ");
+                csvContent += `${cat},${score},"${notes}"\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'strongman_audit.csv');
+            a.click();
+        }
+    </script>
+</body>
+</html>
